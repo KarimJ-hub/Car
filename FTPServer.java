@@ -110,7 +110,47 @@ public class FTPServer {
                             initialServer.close();
                             initialServer = null;
                         }
-                    } else {
+                    } 
+                    else if (str.startsWith("CWD ")) {
+                        String newDir = str.substring(4).trim();
+                        File targetDir = new File(currentDirectory, newDir);
+
+                        if (targetDir.isDirectory() && targetDir.exists()) {
+                            currentDirectory = targetDir;
+                            out.write(("250 Directory changed to " + targetDir.getAbsolutePath() + "\r\n").getBytes());
+                        } else {
+                            out.write("550 Directory not found\r\n".getBytes());
+                        }
+                    } 
+                    else if (str.equalsIgnoreCase("LIST")) {
+                        if (initialServer == null || initialServer.isClosed()) {
+                            initialServer = new ServerSocket(0);
+                            int dataPort = initialServer.getLocalPort();
+                            String epsvResponse = "229 Entering Extended Passive Mode (|||" + dataPort + "|)\r\n";
+                            out.write(epsvResponse.getBytes());
+                        }
+
+                        out.write("150 Here comes the directory listing\r\n".getBytes());
+
+                        try (Socket dataSocket = initialServer.accept();
+                             OutputStream dataOut = dataSocket.getOutputStream()) {
+                            File[] files = currentDirectory.listFiles();
+                            if (files != null) {
+                                for (File file : files) {
+                                    String fileInfo = (file.isDirectory() ? "d" : "-") + " " + file.getName() + "\r\n";
+                                    dataOut.write(fileInfo.getBytes());
+                                }
+                            }
+                            dataOut.flush();
+                            out.write("226 Directory listing complete\r\n".getBytes());
+                        } catch (IOException e) {
+                            out.write("426 Connection closed; transfer aborted\r\n".getBytes());
+                        } finally {
+                            initialServer.close();
+                            initialServer = null;
+                        }
+                    }
+                    else {
                         out.write("502 Command not implemented\r\n".getBytes());
                     }
                 }
