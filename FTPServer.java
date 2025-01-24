@@ -25,6 +25,7 @@ public class FTPServer {
     private static final String USER = "miage";
     private static final String PASSWORD = "car";
     private static ServerSocket initialServer;
+    private static File currentDirectory = new File(System.getProperty("user.dir"));
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
